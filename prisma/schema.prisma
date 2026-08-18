@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Problem {
+  id          Int          @id @default(autoincrement())
+  title       String
+  description String
+  testcases   String       // Lưu JSON string test gốc: [{"input":"1 2","output":"3"}]
+  submissions Submission[]
+}
+
+model Submission {
+  id          Int              @id @default(autoincrement())
+  studentName String
+  problemId   Int
+  problem     Problem          @relation(fields: [problemId], references: [id])
+  code        String
+  status      String           // AC, WA, TLE, CE, RE
+  score       String           // VD: "2/3"
+  createdAt   DateTime         @default(now())
+  details     TestcaseResult[]
+}
+
+model TestcaseResult {
+  id           Int        @id @default(autoincrement())
+  submissionId Int
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  testNumber   Int        // Test số mấy (1, 2, 3...)
+  status       String     // AC (Đúng), WA (Sai đáp án), TLE (Quá thời gian), RE (Lỗi thực thi/Tràn số)
+  actualOutput String?
+  errorMessage String?    // Lưu thông tin lỗi nếu có
+}
