@@ -12,6 +12,7 @@ model Problem {
   title       String
   description String
   testcases   String       // Lưu JSON string test gốc: [{"input":"1 2","output":"3"}]
+  isHidden Boolean @default(false)
   submissions Submission[]
 }
 

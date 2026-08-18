@@ -2,7 +2,9 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 
 export default async function Home() {
-  const problems = await prisma.problem.findMany()
+  const problems = await prisma.problem.findMany({
+    where: { isHidden: false } // Chỉ lấy bài không bị ẩn
+  })
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '40px 20px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
