@@ -10,7 +10,6 @@ export default async function AdminPage({ searchParams }) {
     const params = await searchParams
     const hasError = params?.error === '1'
 
-    // Server Action xử lý xác thực ngầm
     async function handleLogin(formData) {
         'use server'
         const password = formData.get('password')
@@ -23,7 +22,6 @@ export default async function AdminPage({ searchParams }) {
         }
     }
 
-    // Chưa đăng nhập -> Hiện form
     if (!isAuthorized) {
         return (
             <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
@@ -54,11 +52,13 @@ export default async function AdminPage({ searchParams }) {
         )
     }
 
-    // Đúng mật khẩu -> Query DB và hiển thị bảng
+    // Tối ưu: Bỏ include testcases nặng ở đây
     const submissions = await prisma.submission.findMany({
         orderBy: { createdAt: 'desc' },
         include: {
-            problem: true,
+            problem: {
+                select: { id: true, title: true }
+            },
             details: true
         }
     })

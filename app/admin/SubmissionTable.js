@@ -6,6 +6,8 @@ import Link from 'next/link'
 export default function SubmissionTable({ submissions }) {
     const [selectedCodeSubmission, setSelectedCodeSubmission] = useState(null)
     const [selectedTestSubmission, setSelectedTestSubmission] = useState(null)
+    const [problemTestcases, setProblemTestcases] = useState([])
+    const [loadingTestcases, setLoadingTestcases] = useState(false)
 
     const getStatusBadge = (status) => {
         const styles = {
@@ -33,12 +35,24 @@ export default function SubmissionTable({ submissions }) {
         )
     }
 
-    // Hàm parse an toàn JSON testcase từ Problem
-    const getProblemTestcases = (problem) => {
+    // Khi bấm Xem Test -> Lấy Testcase của Bài tập đó trên demand
+
+    const handleOpenTestModal = async (submission) => {
+        setSelectedTestSubmission(submission)
+        setLoadingTestcases(true)
+        setProblemTestcases([])
+
         try {
-            return JSON.parse(problem.testcases || '[]')
+            // Thêm ?preview=true ở cuối đường dẫn
+            const res = await fetch(`/api/problems/${submission.problem.id}?preview=true`)
+            const data = await res.json()
+            if (data && data.testcases) {
+                setProblemTestcases(data.testcases)
+            }
         } catch (e) {
-            return []
+            console.error('Lỗi khi lấy testcase:', e)
+        } finally {
+            setLoadingTestcases(false)
         }
     }
 
@@ -52,12 +66,20 @@ export default function SubmissionTable({ submissions }) {
                         <h1 style={{ margin: 0, fontSize: 24, color: '#0f172a', fontWeight: 700 }}>Lịch Sử Nộp Bài (Admin)</h1>
                         <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 14 }}>Tổng số lượt nộp: <strong>{submissions.length}</strong></p>
                     </div>
-                    <Link
-                        href="/"
-                        style={{ fontSize: 13, color: '#2563eb', textDecoration: 'none', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '8px 16px', borderRadius: 6, fontWeight: 500 }}
-                    >
-                        ← Trang chủ bài tập
-                    </Link>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                        <Link
+                            href="/admin/problems"
+                            style={{ fontSize: 13, color: '#15803d', textDecoration: 'none', background: '#dcfce7', border: '1px solid #bbf7d0', padding: '8px 16px', borderRadius: 6, fontWeight: 600 }}
+                        >
+                            📚 Quản lý Đề bài
+                        </Link>
+                        <Link
+                            href="/"
+                            style={{ fontSize: 13, color: '#2563eb', textDecoration: 'none', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '8px 16px', borderRadius: 6, fontWeight: 500 }}
+                        >
+                            ← Trang chủ
+                        </Link>
+                    </div>
                 </div>
 
                 {/* Bảng dữ liệu */}
@@ -67,7 +89,7 @@ export default function SubmissionTable({ submissions }) {
                             <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: 13, fontWeight: 600 }}>
                                 <th style={{ padding: '12px 16px', width: 60 }}>ID</th>
                                 <th style={{ padding: '12px 16px', width: 160 }}>Thời gian</th>
-                                <th style={{ padding: '12px 16px', width: 240 }}>Họ và tên</th>
+                                <th style={{ padding: '12px 16px', width: 200 }}>Họ và tên</th>
                                 <th style={{ padding: '12px 16px' }}>Bài tập</th>
                                 <th style={{ padding: '12px 16px', width: 80, textAlign: 'center' }}>Điểm</th>
                                 <th style={{ padding: '12px 16px', width: 100, textAlign: 'center' }}>Trạng thái</th>
@@ -83,14 +105,14 @@ export default function SubmissionTable({ submissions }) {
                                         {new Date(s.createdAt).toLocaleString('vi-VN')}
                                     </td>
                                     <td style={{ padding: '12px 16px', fontWeight: 600, color: '#1e293b' }}>{s.studentName}</td>
-                                    <td style={{ padding: '12px 16px', color: '#334155', fontWeight: 500 }}>{s.problem.title}</td>
+                                    <td style={{ padding: '12px 16px', color: '#334155', fontWeight: 500 }}>{s.problem?.title}</td>
                                     <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 700, color: '#0f172a' }}>{s.score}</td>
                                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>{getStatusBadge(s.status)}</td>
 
                                     {/* Cột Chi tiết Testcase */}
                                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                                         <button
-                                            onClick={() => setSelectedTestSubmission(s)}
+                                            onClick={() => handleOpenTestModal(s)}
                                             style={{
                                                 background: '#f1f5f9',
                                                 color: '#334155',
@@ -130,7 +152,7 @@ export default function SubmissionTable({ submissions }) {
                     </table>
                 </div>
 
-                {/* 1. MODAL XEM CHI TIẾT TESTCASE */}
+                {/* MODAL CHI TIẾT TESTCASE */}
                 {selectedTestSubmission && (
                     <div style={{
                         position: 'fixed',
@@ -157,7 +179,7 @@ export default function SubmissionTable({ submissions }) {
                             <div style={{ padding: '16px 20px', background: '#0f172a', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
                                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
-                                        Chi Tiết Testcase: {selectedTestSubmission.studentName} ({selectedTestSubmission.problem.title})
+                                        Chi Tiết Testcase: {selectedTestSubmission.studentName} ({selectedTestSubmission.problem?.title})
                                     </h3>
                                     <p style={{ margin: '4px 0 0', fontSize: 12, color: '#94a3b8' }}>
                                         Tổng số test: {selectedTestSubmission.details.length} | Điểm: {selectedTestSubmission.score} ({selectedTestSubmission.status})
@@ -173,71 +195,76 @@ export default function SubmissionTable({ submissions }) {
 
                             {/* Body Danh sách Testcase */}
                             <div style={{ padding: 20, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                {selectedTestSubmission.details.map((detail) => {
-                                    const rawTestcases = getProblemTestcases(selectedTestSubmission.problem)
-                                    const originalTest = rawTestcases[detail.testNumber - 1] || {}
+                                {loadingTestcases ? (
+                                    <div style={{ textAlign: 'center', padding: 30, color: '#64748b' }}>
+                                        ⏳ Đang tải thông tin Input/Output mẫu...
+                                    </div>
+                                ) : (
+                                    selectedTestSubmission.details.map((detail) => {
+                                        const originalTest = problemTestcases.find(t => t.testNumber === detail.testNumber) || {}
 
-                                    return (
-                                        <div key={detail.id} style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 14, background: '#fafafa' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                                <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>
-                                                    Test #{detail.testNumber}
-                                                </span>
-                                                {getStatusBadge(detail.status)}
+                                        return (
+                                            <div key={detail.id} style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 14, background: '#fafafa' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                                                    <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>
+                                                        Test #{detail.testNumber}
+                                                    </span>
+                                                    {getStatusBadge(detail.status)}
+                                                </div>
+
+                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                                                    {/* Input */}
+                                                    <div>
+                                                        <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Dữ liệu vào (Input):</label>
+                                                        <pre style={{ margin: 0, padding: 8, background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 13, fontFamily: 'monospace', whiteSpace: 'pre-wrap', maxHeight: 120, overflowY: 'auto' }}>
+                                                            {originalTest.input || '(Trống)'}
+                                                        </pre>
+                                                    </div>
+
+                                                    {/* Expected Output */}
+                                                    <div>
+                                                        <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Đáp án mẫu (Output chuẩn):</label>
+                                                        <pre style={{ margin: 0, padding: 8, background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 13, fontFamily: 'monospace', whiteSpace: 'pre-wrap', maxHeight: 120, overflowY: 'auto' }}>
+                                                            {originalTest.output || '(Trống)'}
+                                                        </pre>
+                                                    </div>
+
+                                                    {/* Actual Output */}
+                                                    <div>
+                                                        <label style={{ fontSize: 12, fontWeight: 600, color: detail.status === 'AC' ? '#16a34a' : '#dc2626', display: 'block', marginBottom: 4 }}>
+                                                            Output học sinh:
+                                                        </label>
+                                                        <pre style={{
+                                                            margin: 0,
+                                                            padding: 8,
+                                                            background: detail.status === 'AC' ? '#f0fdf4' : '#fef2f2',
+                                                            border: `1px solid ${detail.status === 'AC' ? '#bbf7d0' : '#fecaca'}`,
+                                                            color: detail.status === 'AC' ? '#15803d' : '#991b1b',
+                                                            borderRadius: 4,
+                                                            fontSize: 13,
+                                                            fontFamily: 'monospace',
+                                                            whiteSpace: 'pre-wrap',
+                                                            maxHeight: 120,
+                                                            overflowY: 'auto'
+                                                        }}>
+                                                            {detail.actualOutput !== null && detail.actualOutput !== undefined ? detail.actualOutput : '(Không có output)'}
+                                                        </pre>
+                                                    </div>
+                                                </div>
+
+                                                {/* Thông báo lỗi nếu có */}
+                                                {detail.errorMessage && (
+                                                    <div style={{ marginTop: 10 }}>
+                                                        <label style={{ fontSize: 12, fontWeight: 600, color: '#dc2626', display: 'block', marginBottom: 4 }}>Thông báo lỗi / Log biên dịch:</label>
+                                                        <pre style={{ margin: 0, padding: 8, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 4, fontSize: 12, fontFamily: 'monospace', whiteSpace: 'pre-wrap', maxHeight: 150, overflowY: 'auto' }}>
+                                                            {detail.errorMessage}
+                                                        </pre>
+                                                    </div>
+                                                )}
                                             </div>
-
-                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                                                {/* 1. Input */}
-                                                <div>
-                                                    <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Dữ liệu vào (Input):</label>
-                                                    <pre style={{ margin: 0, padding: 8, background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 13, fontFamily: 'monospace', whiteSpace: 'pre-wrap', maxHeight: 120, overflowY: 'auto' }}>
-                                                        {originalTest.input || '(Trống)'}
-                                                    </pre>
-                                                </div>
-
-                                                {/* 2. Expected Output */}
-                                                <div>
-                                                    <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Đáp án mẫu (Output chuẩn):</label>
-                                                    <pre style={{ margin: 0, padding: 8, background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 13, fontFamily: 'monospace', whiteSpace: 'pre-wrap', maxHeight: 120, overflowY: 'auto' }}>
-                                                        {originalTest.output || '(Trống)'}
-                                                    </pre>
-                                                </div>
-
-                                                {/* 3. Actual Output của Học Sinh */}
-                                                <div>
-                                                    <label style={{ fontSize: 12, fontWeight: 600, color: detail.status === 'AC' ? '#16a34a' : '#dc2626', display: 'block', marginBottom: 4 }}>
-                                                        Output học sinh:
-                                                    </label>
-                                                    <pre style={{
-                                                        margin: 0,
-                                                        padding: 8,
-                                                        background: detail.status === 'AC' ? '#f0fdf4' : '#fef2f2',
-                                                        border: `1px solid ${detail.status === 'AC' ? '#bbf7d0' : '#fecaca'}`,
-                                                        color: detail.status === 'AC' ? '#15803d' : '#991b1b',
-                                                        borderRadius: 4,
-                                                        fontSize: 13,
-                                                        fontFamily: 'monospace',
-                                                        whiteSpace: 'pre-wrap',
-                                                        maxHeight: 120,
-                                                        overflowY: 'auto'
-                                                    }}>
-                                                        {detail.actualOutput !== null && detail.actualOutput !== undefined ? detail.actualOutput : '(Không có output)'}
-                                                    </pre>
-                                                </div>
-                                            </div>
-
-                                            {/* Thông báo lỗi nếu có */}
-                                            {detail.errorMessage && (
-                                                <div style={{ marginTop: 10 }}>
-                                                    <label style={{ fontSize: 12, fontWeight: 600, color: '#dc2626', display: 'block', marginBottom: 4 }}>Thông báo lỗi / Log biên dịch:</label>
-                                                    <pre style={{ margin: 0, padding: 8, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 4, fontSize: 12, fontFamily: 'monospace', whiteSpace: 'pre-wrap', maxHeight: 150, overflowY: 'auto' }}>
-                                                        {detail.errorMessage}
-                                                    </pre>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )
-                                })}
+                                        )
+                                    })
+                                )}
                             </div>
 
                             {/* Footer Modal */}
@@ -253,7 +280,7 @@ export default function SubmissionTable({ submissions }) {
                     </div>
                 )}
 
-                {/* 2. MODAL XEM CODE C++ */}
+                {/* MODAL XEM CODE C++ */}
                 {selectedCodeSubmission && (
                     <div style={{
                         position: 'fixed',
@@ -279,7 +306,7 @@ export default function SubmissionTable({ submissions }) {
                             <div style={{ padding: '16px 20px', background: '#0f172a', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
                                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
-                                        Mã nguồn C++: {selectedCodeSubmission.studentName} ({selectedCodeSubmission.problem.title})
+                                        Mã nguồn C++: {selectedCodeSubmission.studentName} ({selectedCodeSubmission.problem?.title})
                                     </h3>
                                     <p style={{ margin: '4px 0 0', fontSize: 12, color: '#94a3b8' }}>
                                         Nộp lúc: {new Date(selectedCodeSubmission.createdAt).toLocaleString('vi-VN')} | Điểm: {selectedCodeSubmission.score} ({selectedCodeSubmission.status})

@@ -55,7 +55,7 @@ export default async function LeaderboardPage() {
 
     return (
         <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '30px 20px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-            <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+            <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
                 {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>

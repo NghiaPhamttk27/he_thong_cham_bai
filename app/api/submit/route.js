@@ -6,20 +6,24 @@ export async function POST(req) {
     try {
         const { studentName, problemId, code } = await req.json()
 
-        // 1. Lấy thông tin bài tập
+        // Lấy bài tập kèm danh sách testcase đã sắp xếp theo testNumber
         const problem = await prisma.problem.findUnique({
-            where: { id: Number(problemId) }
+            where: { id: Number(problemId) },
+            include: {
+                testcases: {
+                    orderBy: { testNumber: 'asc' }
+                }
+            }
         })
 
         if (!problem) {
-            return NextResponse.json({ error: 'Không tìm thấy bài tập' }, { status: 404 })
+            return NextResponse.json({ error: 'Bài tập không tồn tại' }, { status: 404 })
         }
 
-        // 2. Tiến hành chấm C++
-        const testcases = JSON.parse(problem.testcases)
-        const judged = await judgeCpp(code, testcases)
+        // Chấm bài
+        const judged = await judgeCpp(code, problem.testcases)
 
-        // 3. Lưu vào Database (gồm cả chi tiết từng testcase)
+        // Lưu lượt nộp vào DB
         const submission = await prisma.submission.create({
             data: {
                 studentName,
@@ -31,17 +35,19 @@ export async function POST(req) {
                     create: judged.results.map((r) => ({
                         testNumber: r.testNumber,
                         status: r.status,
-                        actualOutput: r.actualOutput, // Thêm dòng này
+                        actualOutput: r.actualOutput,
                         errorMessage: r.errorMessage
                     }))
                 }
             },
-            include: {
-                details: true
-            }
+            include: { details: true }
         })
 
-        return NextResponse.json(submission)
+        return NextResponse.json({
+            status: submission.status,
+            score: submission.score,
+            details: submission.details
+        })
     } catch (error) {
         return NextResponse.json({ error: error.message }, { status: 500 })
     }

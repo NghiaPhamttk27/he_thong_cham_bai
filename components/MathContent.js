@@ -1,12 +1,15 @@
 'use client'
+
 import { useEffect, useRef } from 'react'
+import renderMathInElement from 'katex/dist/contrib/auto-render'
+import 'katex/dist/katex.min.css'
 
 export default function MathContent({ html }) {
     const containerRef = useRef(null)
 
     useEffect(() => {
-        if (containerRef.current && window.renderMathInElement) {
-            window.renderMathInElement(containerRef.current, {
+        if (containerRef.current) {
+            renderMathInElement(containerRef.current, {
                 delimiters: [
                     { left: '$$', right: '$$', display: true },
                     { left: '$', right: '$', display: false },
@@ -21,23 +24,23 @@ export default function MathContent({ html }) {
     return (
         <>
             <style jsx global>{`
-        .math-content table {
-          border-collapse: collapse;
-          width: 100%;
-        }
-        .math-content table td,
-        .math-content table th {
-          vertical-align: top !important;
-          padding: 6px 10px;
-        }
-        .math-content table td pre,
-        .math-content pre {
-          margin: 0 !important;
-          padding: 0 !important;
-          font-family: monospace;
-          white-space: pre-wrap;
-        }
-      `}</style>
+            .math-content table {
+              border-collapse: collapse;
+              width: 100%;
+            }
+            .math-content table td,
+            .math-content table th {
+              vertical-align: top !important;
+              padding: 6px 10px;
+            }
+            .math-content table td pre,
+            .math-content pre {
+              margin: 0 !important;
+              padding: 0 !important;
+              font-family: monospace;
+              white-space: pre-wrap;
+            }
+          `}</style>
             <div
                 ref={containerRef}
                 dangerouslySetInnerHTML={{ __html: html }}
