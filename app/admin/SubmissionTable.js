@@ -6,8 +6,6 @@ import Link from 'next/link'
 export default function SubmissionTable({ submissions }) {
     const [selectedCodeSubmission, setSelectedCodeSubmission] = useState(null)
     const [selectedTestSubmission, setSelectedTestSubmission] = useState(null)
-    const [problemTestcases, setProblemTestcases] = useState([])
-    const [loadingTestcases, setLoadingTestcases] = useState(false)
 
     const getStatusBadge = (status) => {
         const styles = {
@@ -33,27 +31,6 @@ export default function SubmissionTable({ submissions }) {
                 {status}
             </span>
         )
-    }
-
-    // Khi bấm Xem Test -> Lấy Testcase của Bài tập đó trên demand
-
-    const handleOpenTestModal = async (submission) => {
-        setSelectedTestSubmission(submission)
-        setLoadingTestcases(true)
-        setProblemTestcases([])
-
-        try {
-            // Thêm ?preview=true ở cuối đường dẫn
-            const res = await fetch(`/api/problems/${submission.problem.id}?preview=true`)
-            const data = await res.json()
-            if (data && data.testcases) {
-                setProblemTestcases(data.testcases)
-            }
-        } catch (e) {
-            console.error('Lỗi khi lấy testcase:', e)
-        } finally {
-            setLoadingTestcases(false)
-        }
     }
 
     return (
@@ -109,10 +86,9 @@ export default function SubmissionTable({ submissions }) {
                                     <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 700, color: '#0f172a' }}>{s.score}</td>
                                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>{getStatusBadge(s.status)}</td>
 
-                                    {/* Cột Chi tiết Testcase */}
                                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                                         <button
-                                            onClick={() => handleOpenTestModal(s)}
+                                            onClick={() => setSelectedTestSubmission(s)}
                                             style={{
                                                 background: '#f1f5f9',
                                                 color: '#334155',
@@ -128,7 +104,6 @@ export default function SubmissionTable({ submissions }) {
                                         </button>
                                     </td>
 
-                                    {/* Cột Xem Code */}
                                     <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                                         <button
                                             onClick={() => setSelectedCodeSubmission(s)}
@@ -152,7 +127,7 @@ export default function SubmissionTable({ submissions }) {
                     </table>
                 </div>
 
-                {/* MODAL CHI TIẾT TESTCASE */}
+                {/* MODAL CHI TIẾT TRẠNG THÁI TESTCASE */}
                 {selectedTestSubmission && (
                     <div style={{
                         position: 'fixed',
@@ -167,22 +142,21 @@ export default function SubmissionTable({ submissions }) {
                         <div style={{
                             background: '#ffffff',
                             width: '100%',
-                            maxWidth: 900,
+                            maxWidth: 650,
                             borderRadius: 12,
                             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
                             overflow: 'hidden',
                             display: 'flex',
                             flexDirection: 'column',
-                            maxHeight: '85vh'
+                            maxHeight: '80vh'
                         }}>
-                            {/* Header Modal */}
                             <div style={{ padding: '16px 20px', background: '#0f172a', color: '#ffffff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div>
                                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
-                                        Chi Tiết Testcase: {selectedTestSubmission.studentName} ({selectedTestSubmission.problem?.title})
+                                        Kết Quả Testcase: {selectedTestSubmission.studentName} ({selectedTestSubmission.problem?.title})
                                     </h3>
                                     <p style={{ margin: '4px 0 0', fontSize: 12, color: '#94a3b8' }}>
-                                        Tổng số test: {selectedTestSubmission.details.length} | Điểm: {selectedTestSubmission.score} ({selectedTestSubmission.status})
+                                        Điểm: {selectedTestSubmission.score} ({selectedTestSubmission.status})
                                     </p>
                                 </div>
                                 <button
@@ -193,81 +167,27 @@ export default function SubmissionTable({ submissions }) {
                                 </button>
                             </div>
 
-                            {/* Body Danh sách Testcase */}
-                            <div style={{ padding: 20, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                {loadingTestcases ? (
-                                    <div style={{ textAlign: 'center', padding: 30, color: '#64748b' }}>
-                                        ⏳ Đang tải thông tin Input/Output mẫu...
+                            {/* Danh sách Testcase dạng Lưới (Grid) */}
+                            <div style={{ padding: 20, overflowY: 'auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
+                                {selectedTestSubmission.details.map((detail) => (
+                                    <div key={detail.id} style={{
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: 6,
+                                        padding: '8px 10px',
+                                        background: '#fafafa',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: 4
+                                    }}>
+                                        <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>
+                                            Test #{detail.testNumber}
+                                        </span>
+                                        {getStatusBadge(detail.status)}
                                     </div>
-                                ) : (
-                                    selectedTestSubmission.details.map((detail) => {
-                                        const originalTest = problemTestcases.find(t => t.testNumber === detail.testNumber) || {}
-
-                                        return (
-                                            <div key={detail.id} style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 14, background: '#fafafa' }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                                                    <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>
-                                                        Test #{detail.testNumber}
-                                                    </span>
-                                                    {getStatusBadge(detail.status)}
-                                                </div>
-
-                                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                                                    {/* Input */}
-                                                    <div>
-                                                        <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Dữ liệu vào (Input):</label>
-                                                        <pre style={{ margin: 0, padding: 8, background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 13, fontFamily: 'monospace', whiteSpace: 'pre-wrap', maxHeight: 120, overflowY: 'auto' }}>
-                                                            {originalTest.input || '(Trống)'}
-                                                        </pre>
-                                                    </div>
-
-                                                    {/* Expected Output */}
-                                                    <div>
-                                                        <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 4 }}>Đáp án mẫu (Output chuẩn):</label>
-                                                        <pre style={{ margin: 0, padding: 8, background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 4, fontSize: 13, fontFamily: 'monospace', whiteSpace: 'pre-wrap', maxHeight: 120, overflowY: 'auto' }}>
-                                                            {originalTest.output || '(Trống)'}
-                                                        </pre>
-                                                    </div>
-
-                                                    {/* Actual Output */}
-                                                    <div>
-                                                        <label style={{ fontSize: 12, fontWeight: 600, color: detail.status === 'AC' ? '#16a34a' : '#dc2626', display: 'block', marginBottom: 4 }}>
-                                                            Output học sinh:
-                                                        </label>
-                                                        <pre style={{
-                                                            margin: 0,
-                                                            padding: 8,
-                                                            background: detail.status === 'AC' ? '#f0fdf4' : '#fef2f2',
-                                                            border: `1px solid ${detail.status === 'AC' ? '#bbf7d0' : '#fecaca'}`,
-                                                            color: detail.status === 'AC' ? '#15803d' : '#991b1b',
-                                                            borderRadius: 4,
-                                                            fontSize: 13,
-                                                            fontFamily: 'monospace',
-                                                            whiteSpace: 'pre-wrap',
-                                                            maxHeight: 120,
-                                                            overflowY: 'auto'
-                                                        }}>
-                                                            {detail.actualOutput !== null && detail.actualOutput !== undefined ? detail.actualOutput : '(Không có output)'}
-                                                        </pre>
-                                                    </div>
-                                                </div>
-
-                                                {/* Thông báo lỗi nếu có */}
-                                                {detail.errorMessage && (
-                                                    <div style={{ marginTop: 10 }}>
-                                                        <label style={{ fontSize: 12, fontWeight: 600, color: '#dc2626', display: 'block', marginBottom: 4 }}>Thông báo lỗi / Log biên dịch:</label>
-                                                        <pre style={{ margin: 0, padding: 8, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 4, fontSize: 12, fontFamily: 'monospace', whiteSpace: 'pre-wrap', maxHeight: 150, overflowY: 'auto' }}>
-                                                            {detail.errorMessage}
-                                                        </pre>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )
-                                    })
-                                )}
+                                ))}
                             </div>
 
-                            {/* Footer Modal */}
                             <div style={{ padding: '12px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end' }}>
                                 <button
                                     onClick={() => setSelectedTestSubmission(null)}
@@ -341,7 +261,7 @@ export default function SubmissionTable({ submissions }) {
                                 <button
                                     onClick={() => {
                                         navigator.clipboard.writeText(selectedCodeSubmission.code)
-                                        alert('Đã sao chép code vào bộ nhớ tạm!')
+                                        alert('Đã sao chép code!')
                                     }}
                                     style={{ background: '#e2e8f0', color: '#334155', border: 'none', padding: '8px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                                 >

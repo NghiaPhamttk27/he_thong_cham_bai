@@ -3,8 +3,13 @@ import { prisma } from '@/lib/prisma'
 
 export default async function Home() {
   const problems = await prisma.problem.findMany({
-    where: { isHidden: false } // Chỉ lấy bài không bị ẩn
+    where: { isHidden: false }
   })
+
+  // Sắp xếp tự nhiên theo tên (Bài 1 -> Bài 2 -> Bài 10)
+  problems.sort((a, b) => 
+    a.title.localeCompare(b.title, 'vi', { numeric: true, sensitivity: 'base' })
+  )
 
   return (
     <div style={{ minHeight: '100vh', background: '#f8fafc', padding: '40px 20px', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -21,9 +26,8 @@ export default async function Home() {
               href="/leaderboard"
               style={{ fontSize: 13, color: '#2563eb', textDecoration: 'none', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '8px 14px', borderRadius: 6, fontWeight: 600 }}
             >
-              🏆 Bảng Xếp Hạng
+              Lịch sử bài nộp
             </Link>
-
           </div>
         </div>
 

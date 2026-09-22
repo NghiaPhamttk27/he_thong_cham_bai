@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 
 export async function POST(req) {
@@ -21,6 +22,10 @@ export async function POST(req) {
                 testcases: true
             }
         })
+
+        // Xóa cache của 2 trang danh sách để cập nhật bài mới ngay lập tức
+        revalidatePath('/')
+        revalidatePath('/admin/problems')
 
         return NextResponse.json(problem)
     } catch (error) {
